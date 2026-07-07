@@ -1,4 +1,4 @@
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 import pandas as pd
@@ -35,7 +35,7 @@ def _iter_image_files(
         Image path and corresponding label.
     """
 
-    split_dir = Path(split_dir)
+    split_dir = Path(split_dir).resolve()
 
     for folder_name, label in class_map.items():
 
@@ -80,7 +80,7 @@ def _process_image(
 
     image = load_image(str(image_path))
 
-    relative_path = image_path.relative_to(root_dir)
+    relative_path = image_path.resolve().relative_to(root_dir.resolve())
 
     record = {
         "image_path": str(relative_path),
@@ -117,7 +117,7 @@ def create_metadata_csv(
         Generated metadata.
     """
 
-    split_dir = Path(split_dir)
+    split_dir = Path(split_dir).resolve()
     root_dir = split_dir.parent
 
     tasks = list(
@@ -127,22 +127,28 @@ def create_metadata_csv(
         )
     )
 
+    records = []
     with ThreadPoolExecutor() as executor:
+        futures = {
+            executor.submit(
+                _process_image,
+                image_path=task[0],
+                label=task[1],
+                root_dir=root_dir,
+            ): task[0]
+            for task in tasks
+        }
 
-        records = list(
-            tqdm(
-                executor.map(
-                    lambda task: _process_image(
-                        image_path=task[0],
-                        label=task[1],
-                        root_dir=root_dir,
-                    ),
-                    tasks,
-                ),
-                total=len(tasks),
-                desc="Generating metadata",
-            )
-        )
+        for future in tqdm(
+            as_completed(futures),
+            total=len(tasks),
+            desc="Generating metadata",
+        ):
+            try:
+                records.append(future.result())
+            except Exception as e:
+                print(f"\n[ERROR] Failed to process {futures[future].name}: {e}")
+
     metadata_df = pd.DataFrame(records)
 
     output_csv = Path(output_csv)
