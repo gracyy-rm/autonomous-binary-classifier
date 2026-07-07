@@ -1,6 +1,8 @@
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import pandas as pd
+from tqdm import tqdm
 
 from cvcore.image_operations.io import (
     load_image,
@@ -118,21 +120,29 @@ def create_metadata_csv(
     split_dir = Path(split_dir)
     root_dir = split_dir.parent
 
-    records = []
-
-    for image_path, label in _iter_image_files(
+    tasks = list(
+    _iter_image_files(
         split_dir=split_dir,
         class_map=class_map,
-    ):
+        )
+    )
 
-        records.append(
-            _process_image(
-                image_path=image_path,
-                label=label,
-                root_dir=root_dir,
+    with ThreadPoolExecutor() as executor:
+
+        records = list(
+            tqdm(
+                executor.map(
+                    lambda task: _process_image(
+                        image_path=task[0],
+                        label=task[1],
+                        root_dir=root_dir,
+                    ),
+                    tasks,
+                ),
+                total=len(tasks),
+                desc="Generating metadata",
             )
         )
-
     metadata_df = pd.DataFrame(records)
 
     output_csv = Path(output_csv)
