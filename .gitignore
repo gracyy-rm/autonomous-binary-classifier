@@ -1,0 +1,15 @@
+# Environments
+.venv/
+venv/
+env/
+
+# Python
+__pycache__/
+*.pyc
+
+# Data & Weights (Never push large files!)
+data/
+*.pt
+*.pth
+*.pth.tar
+checkpoint/
