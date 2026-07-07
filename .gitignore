@@ -8,7 +8,6 @@ __pycache__/
 *.pyc
 
 # Data & Weights (Never push large files!)
-data/
 *.pt
 *.pth
 *.pth.tar
