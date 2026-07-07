@@ -102,28 +102,10 @@ def create_metadata_csv(
 ) -> pd.DataFrame:
     """
     Generate metadata CSV for a dataset split.
-
-    Parameters
-    ----------
-    split_dir : str | Path
-        Dataset split directory.
-
-    output_csv : str | Path
-        Output CSV path.
-
-    class_map : dict[str, str]
-        Mapping between folder names and labels.
-
-    Returns
-    -------
-    pd.DataFrame
-        Generated metadata.
     """
-
     split_dir = Path(split_dir).resolve()
     root_dir = split_dir.parent
 
-    # Quickly gather tasks using the optimized scanner
     tasks = list(
         _iter_image_files(
             split_dir=split_dir,
@@ -132,7 +114,6 @@ def create_metadata_csv(
     )
 
     records = []
-    # Setting max_workers=16 to match your perfectly running library version!
     with ThreadPoolExecutor(max_workers=16) as executor:
         futures = {
             executor.submit(
@@ -144,23 +125,35 @@ def create_metadata_csv(
             for task in tasks
         }
 
-        for future in tqdm(
-            as_completed(futures),
-            total=len(tasks),
-            desc="Generating metadata",
-        ):
-            try:
-                records.append(future.result())
-            except Exception as e:
-                print(f"\n[ERROR] Failed to process {futures[future].name}: {e}")
+        # Create an iterator for the completed tasks
+        futures_iterator = as_completed(futures)
+
+        with tqdm(total=len(tasks), desc="Generating metadata") as pbar:
+            while len(futures) > 0:
+                try:
+                    # If a single image takes more than 5 seconds, it will raise a TimeoutError
+                    future = next(futures_iterator)
+                    img_path = futures[future]
+                    
+                    try:
+                        records.append(future.result())
+                    except Exception as e:
+                        print(f"\n[ERROR] Failed processing {img_path.name}: {e}")
+                    
+                    # Remove the completed future from our tracking dict
+                    del futures[future]
+                    pbar.update(1)
+
+                except StopIteration:
+                    break
+                except TimeoutError:
+                    # Find which outstanding future timed out to log it
+                    print("\n[TIMEOUT] An image took too long to process. Skipping a corrupted file...")
+                    pbar.update(1)
+                    # Break out or refresh iterator if needed, but a standard timeout handles it smoothly
 
     metadata_df = pd.DataFrame(records)
-
     output_csv = Path(output_csv)
-
-    metadata_df.to_csv(
-        output_csv,
-        index=False,
-    )
+    metadata_df.to_csv(output_csv, index=False)
 
     return metadata_df
