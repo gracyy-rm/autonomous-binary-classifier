@@ -99,36 +99,27 @@ def create_metadata_csv(
 ) -> pd.DataFrame:
     """
     Generate metadata CSV for a dataset split.
-
-    Parameters
-    ----------
-    split_dir : str | Path
-        Dataset split directory.
-
-    output_csv : str | Path
-        Output CSV path.
-
-    class_map : dict[str, str]
-        Mapping between folder names and labels.
-
-    Returns
-    -------
-    pd.DataFrame
-        Generated metadata.
     """
-
     split_dir = Path(split_dir).resolve()
     root_dir = split_dir.parent
 
+    # 1. Gather tasks directly without sorting the entire directory at once if it's too heavy
+    # If you absolutely need sorted paths, keep it, but note it takes time to initialize.
+    print("Scanning directory for images...")
     tasks = list(
-    _iter_image_files(
-        split_dir=split_dir,
-        class_map=class_map,
+        _iter_image_files(
+            split_dir=split_dir,
+            class_map=class_map,
         )
     )
+    
+    num_tasks = len(tasks)
+    print(f"Found {num_tasks} images. Starting thread pool...")
 
     records = []
-    with ThreadPoolExecutor() as executor:
+    
+    # 2. Limit max_workers to 4 or 8 so Kaggle doesn't choke on thread allocations
+    with ThreadPoolExecutor(max_workers=4) as executor:
         futures = {
             executor.submit(
                 _process_image,
@@ -139,10 +130,12 @@ def create_metadata_csv(
             for task in tasks
         }
 
+        # 3. Force tqmd to refresh frequently so you see progress instantly
         for future in tqdm(
             as_completed(futures),
-            total=len(tasks),
+            total=num_tasks,
             desc="Generating metadata",
+            mininterval=0.5, # Updates the bar every 0.5 seconds at least
         ):
             try:
                 records.append(future.result())
@@ -150,12 +143,7 @@ def create_metadata_csv(
                 print(f"\n[ERROR] Failed to process {futures[future].name}: {e}")
 
     metadata_df = pd.DataFrame(records)
-
     output_csv = Path(output_csv)
-
-    metadata_df.to_csv(
-        output_csv,
-        index=False,
-    )
+    metadata_df.to_csv(output_csv, index=False)
 
     return metadata_df
