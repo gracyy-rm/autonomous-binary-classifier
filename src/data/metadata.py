@@ -1,4 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import os
 from pathlib import Path
 
 import pandas as pd
@@ -46,11 +47,13 @@ def _iter_image_files(
                 f"Folder not found: {class_dir}"
             )
 
-        for image_path in sorted(class_dir.iterdir()):
-
-            if image_path.suffix.lower() in IMAGE_EXTENSIONS:
-
-                yield image_path, label
+        # FAST SCANNING: os.scandir is significantly faster than sorted(iterdir()) on Kaggle
+        with os.scandir(class_dir) as entries:
+            for entry in entries:
+                if entry.is_file():
+                    ext = os.path.splitext(entry.name)[1].lower()
+                    if ext in IMAGE_EXTENSIONS:
+                        yield Path(entry.path), label
 
 
 def _process_image(
@@ -99,27 +102,38 @@ def create_metadata_csv(
 ) -> pd.DataFrame:
     """
     Generate metadata CSV for a dataset split.
+
+    Parameters
+    ----------
+    split_dir : str | Path
+        Dataset split directory.
+
+    output_csv : str | Path
+        Output CSV path.
+
+    class_map : dict[str, str]
+        Mapping between folder names and labels.
+
+    Returns
+    -------
+    pd.DataFrame
+        Generated metadata.
     """
+
     split_dir = Path(split_dir).resolve()
     root_dir = split_dir.parent
 
-    # 1. Gather tasks directly without sorting the entire directory at once if it's too heavy
-    # If you absolutely need sorted paths, keep it, but note it takes time to initialize.
-    print("Scanning directory for images...")
+    # Quickly gather tasks using the optimized scanner
     tasks = list(
         _iter_image_files(
             split_dir=split_dir,
             class_map=class_map,
         )
     )
-    
-    num_tasks = len(tasks)
-    print(f"Found {num_tasks} images. Starting thread pool...")
 
     records = []
-    
-    # 2. Limit max_workers to 4 or 8 so Kaggle doesn't choke on thread allocations
-    with ThreadPoolExecutor(max_workers=4) as executor:
+    # Setting max_workers=16 to match your perfectly running library version!
+    with ThreadPoolExecutor(max_workers=16) as executor:
         futures = {
             executor.submit(
                 _process_image,
@@ -130,12 +144,10 @@ def create_metadata_csv(
             for task in tasks
         }
 
-        # 3. Force tqmd to refresh frequently so you see progress instantly
         for future in tqdm(
             as_completed(futures),
-            total=num_tasks,
+            total=len(tasks),
             desc="Generating metadata",
-            mininterval=0.5, # Updates the bar every 0.5 seconds at least
         ):
             try:
                 records.append(future.result())
@@ -143,7 +155,12 @@ def create_metadata_csv(
                 print(f"\n[ERROR] Failed to process {futures[future].name}: {e}")
 
     metadata_df = pd.DataFrame(records)
+
     output_csv = Path(output_csv)
-    metadata_df.to_csv(output_csv, index=False)
+
+    metadata_df.to_csv(
+        output_csv,
+        index=False,
+    )
 
     return metadata_df
