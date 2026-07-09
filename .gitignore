@@ -12,3 +12,6 @@ __pycache__/
 *.pth
 *.pth.tar
 checkpoint/
+
+data/processed_csv/
+*.csv
