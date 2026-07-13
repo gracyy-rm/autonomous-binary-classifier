@@ -74,7 +74,7 @@ def validate(model,dataloader,criterion,device,epoch,writer):
     return epoch_loss, epoch_acc
 
 
-def run_pipeline(config_path="config\config.json"):
+def run_pipeline(config_path="config/config.json"):
     
     # Load and Parse JSON Configuration Document
     print(f"Reading configuration settings profile from: {config_path}")
