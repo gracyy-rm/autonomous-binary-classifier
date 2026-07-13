@@ -13,8 +13,7 @@ __pycache__/
 *.pth.tar
 checkpoint/
 
-data/processed_csv/
-*.csv
+
 
 # Data and Logs (Keep the structure, ignore the contents)
 data/
