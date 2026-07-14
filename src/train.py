@@ -6,8 +6,8 @@ from torch.utils.tensorboard import SummaryWriter
 import pandas as pd
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-from model import create_model
-from dataset import AutonomousBinaryDataset, get_data_transforms
+from .model import create_model
+from .dataset import AutonomousBinaryDataset, get_data_transforms
 
 def train_one_epoch(model,dataloader,criterion,optimizer,device,epoch,writer,accumulation_steps=4):
     """Runs a single training epoch with Gradient Accumulation and TensorBoard logging."""
