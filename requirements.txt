@@ -1,8 +1,7 @@
-torch
+
 torchinfo
 pandas
 numpy
 scikit-learn
-torchvision
 tqdm
 tensorboard
