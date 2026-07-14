@@ -18,7 +18,6 @@ def train_one_epoch(model,dataloader,criterion,optimizer,device,epoch,writer,acc
 
     optimizer.zero_grad(set_to_none=True)
     progress_bar = tqdm(dataloader, desc =f"Epoch {epoch}[Train]",leave=False)
-    progress_bar.set_postfix(loss=loss.item()*accumulation_steps)
     for batch_idx, (images,labels) in enumerate(progress_bar):
         images=images.to(device)
         labels=labels.to(device).unsqueeze(1)
