@@ -1,6 +1,7 @@
 import os
 import torch
 import torch.nn as nn
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 import pandas as pd
@@ -157,9 +158,19 @@ def run_pipeline(config):
         filter(lambda p: p.requires_grad, model.parameters()),
         lr=train_cfg["learning_rate"]
     )
+    # LR-Scheduler
+    scheduler = ReduceLROnPlateau(
+        optimizer=optimizer,
+        mode="min",
+        factor=0.1,
+        patience=2,
+        min_lr=1e-6
+    )
 
     # Training Loop
     best_val_loss = float("inf")
+    early_stopping_counter = 0
+    early_stopping_patience = train_cfg["early_stopping_patience"]
 
     print("\nStarting Training...\n")
 
@@ -184,6 +195,14 @@ def run_pipeline(config):
             epoch=epoch,
             writer=writer
         )
+        scheduler.step(val_loss)
+        # tensorboard will show the lr chaning over time 
+        current_lr = optimizer.param_groups[0]["lr"]
+        writer.add_scalar(
+            "Learning Rate",
+            current_lr,
+            epoch 
+        )
 
         print(
             f"Epoch [{epoch}/{train_cfg['epochs']}] | "
@@ -197,6 +216,8 @@ def run_pipeline(config):
 
             best_val_loss = val_loss
 
+            early_stopping_counter = 0
+
             save_path = os.path.join(
                 paths["model_save_dir"],
                 f"best_{model_cfg['architecture']}.pth"
@@ -205,6 +226,21 @@ def run_pipeline(config):
             torch.save(model.state_dict(), save_path)
 
             print(f"Best model saved to {save_path}")
+
+        else:
+
+            early_stopping_counter += 1
+
+            print(
+                f"No improvement for "
+                f"{early_stopping_counter} epoch(s)."
+            )
+
+            if early_stopping_counter >= early_stopping_patience:
+
+                print("\nEarly stopping triggered.")
+
+                break
 
     writer.close()
 

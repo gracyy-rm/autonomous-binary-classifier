@@ -21,10 +21,11 @@
     "training_parameters": {
         "batch_size": 32,
         "learning_rate": 0.001,
-        "epochs": 10,
+        "epochs": 5,
         "image_size": 224,
         "seed": 1,
-        "accumulation_steps": 4
+        "accumulation_steps": 4,
+        "early_stopping_patience" : 5
     },
     "hardware": {
         "num_workers": 2
