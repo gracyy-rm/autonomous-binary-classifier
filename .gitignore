@@ -16,9 +16,9 @@ __pycache__/
 
 
 # Data and Logs (Keep the structure, ignore the contents)
-data/
-logs/*
-!logs/.gitkeep
+#data/
+#logs/*
+#!logs/.gitkeep
 
 # Model Checkpoints (Crucial - never push heavy model weights)
 #saved_models/*
