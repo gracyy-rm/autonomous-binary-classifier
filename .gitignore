@@ -21,8 +21,8 @@ logs/*
 !logs/.gitkeep
 
 # Model Checkpoints (Crucial - never push heavy model weights)
-saved_models/*
-!saved_models/.gitkeep
+#saved_models/*
+#!saved_models/.gitkeep
 
 # OS generated files
 .DS_Store
