@@ -9,6 +9,7 @@ from .dataset import get_data_transforms
 from .model import create_model
 
 from cvcore.plot_operations import image_row
+from tqdm import tqdm 
 
 
 class BinaryClassifierInference:
@@ -214,8 +215,7 @@ class BinaryClassifierInference:
 
         results = []
 
-        for filename in sorted(os.listdir(folder_path)):
-
+        for filename in tqdm(sorted(os.listdir(folder_path)),desc="Running Inference"):
             if not filename.lower().endswith(supported_extensions):
                 continue
 
