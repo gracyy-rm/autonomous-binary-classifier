@@ -7,7 +7,7 @@
         "model_save_dir": "saved_models/"
     },
     "model": {
-        "architecture": "resnet18",
+        "architecture": "mobilenet_v3",
         "pretrained": true,
         "num_classes": 2,
         "freeze_backbone": "True"
@@ -21,7 +21,7 @@
     "training_parameters": {
         "batch_size": 128,
         "learning_rate": 0.001,
-        "epochs": 5,
+        "epochs": 5 ,
         "image_size": 224,
         "seed": 1,
         "accumulation_steps": 4,

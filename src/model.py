@@ -36,7 +36,7 @@ def create_model(model_name='resnet18', num_classes=1, freeze_backbone=True):
         in_features = backbone.fc.in_features
         backbone.fc = nn.Identity()
     elif model_name == 'mobilenet_v3':
-        backbone = models.mobilenet_v3_large(weights=models.MobileNet_V3_Large_Weights.DEFAULT)
+        backbone = models.mobilenet_v3_small(weights=models.MobileNet_V3_Small_Weights.DEFAULT)
         in_features = backbone.classifier[0].in_features
         backbone.classifier = nn.Identity()
     elif model_name == 'efficientnet_b0':
