@@ -74,16 +74,18 @@ class BinaryClassifierInference:
     def _load_model(self):
         """
         Load trained model for inference.
-        
+
         Returns
-        ------
+        -------
         torch.nn.Module
             Loaded model in evaluation mode.
         """
+
         if not os.path.exists(self.model_path):
             raise FileNotFoundError(
-                f"Model checkpoint not found :{self.model_path}"
+                f"Model checkpoint not found: {self.model_path}"
             )
+
         model = create_model(
             model_name=self.model_name,
             num_classes=1,
@@ -96,6 +98,12 @@ class BinaryClassifierInference:
                 map_location=self.device
             )
         )
+
+        model.to(self.device)
+
+        model.eval()
+
+        return model
     def _preprocess_image(self, image_path):
         """
         Load and preprocess an image.
