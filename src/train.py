@@ -171,7 +171,7 @@ def run_pipeline(config):
     best_val_loss = float("inf")
     early_stopping_counter = 0
     early_stopping_patience = train_cfg["early_stopping_patience"]
-
+    min_delta = 1e-4
     print("\nStarting Training...\n")
 
     for epoch in range(1, train_cfg["epochs"] + 1):
@@ -212,7 +212,7 @@ def run_pipeline(config):
             f"Val Acc : {val_acc*100:.2f}%"
         )
 
-        if val_loss < best_val_loss:
+        if val_loss < best_val_loss-min_delta:
 
             best_val_loss = val_loss
 
