@@ -8,10 +8,10 @@ __pycache__/
 *.pyc
 
 # Data & Weights (Never push large files!)
-*.pt
-*.pth
-*.pth.tar
-checkpoint/
+#*.pt
+#*.pth
+#*.pth.tar
+#checkpoint/
 
 
 
