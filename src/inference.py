@@ -9,6 +9,7 @@ from .dataset import get_data_transforms
 from .model import create_model
 
 from cvcore.plot_operations import image_row
+from cvcore.image_operations import load_image
 from tqdm import tqdm 
 
 
@@ -158,10 +159,12 @@ class BinaryClassifierInference:
 
         probability = torch.sigmoid(logits).item()
 
-        prediction = "Night" if probability >= 0.5 else "Day"
+        predicted_label = int(probability >= 0.5)
+
+        prediction = self.class_names[predicted_label]
 
         confidence = (
-            probability if probability >= 0.5
+            probability if predicted_label == 1
             else 1 - probability
         ) * 100
 
@@ -255,11 +258,12 @@ class BinaryClassifierInference:
         """
 
         title = (
-            f"Prediction : {prediction_result['prediction']}\n"
-            f"Confidence : {prediction_result['confidence']:.2f}%"
+            f"{prediction_result['prediction']}\n"
+            f"{prediction_result['confidence']:.2f}%"
         )
 
         image_row(
-            images=[prediction_result["image"]],
-            titles=[title]
+            **{
+                title: prediction_result["image_path"]
+            }
         )
