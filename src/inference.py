@@ -48,6 +48,10 @@ class BinaryClassifierInference:
             paths["model_save_dir"],
             f"best_{self.model_name}.pth"
         )
+        self.class_names = {
+            0: "Day",
+            1: "Night"
+        }
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -154,7 +158,7 @@ class BinaryClassifierInference:
 
         probability = torch.sigmoid(logits).item()
 
-        prediction = "Day" if probability >= 0.5 else "Night"
+        prediction = "Night" if probability >= 0.5 else "Day"
 
         confidence = (
             probability if probability >= 0.5
