@@ -1,21 +1,18 @@
 {
     "paths": {
-        "image_root": "/kaggle/input/datasets/solesensei/solesensei_bdd100k/bdd100k/bdd100k/images/100k",
-        "train_csv": "data/processed_csv/train_split.csv",
-        "val_csv": "data/processed_csv/val_split.csv",
         "log_dir": "logs/",
         "model_save_dir": "saved_models/"
     },
     "model": {
         "architecture": "resnet18",
         "pretrained": true,
-        "num_classes": 2,
-        "freeze_backbone": "True"
+        "num_classes": 1,
+        "freeze_backbone": true
     },
     "classes": {
         "mapping": {
-            "trainA": "Day",
-            "trainB": "Night"
+            "0": "No_Obstacle",
+            "1": "Obstacle"
         }
     },
     "training_parameters": {
