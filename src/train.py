@@ -116,13 +116,11 @@ def run_pipeline(config):
     # dataset 
     train_dataset = AutonomousBinaryDataset(
         df=train_df,
-        root_dir=paths["image_root"],
         transform=train_transform
     )
 
     val_dataset = AutonomousBinaryDataset(
         df=val_df,
-        root_dir=paths["image_root"],
         transform=val_transform
     )
 
