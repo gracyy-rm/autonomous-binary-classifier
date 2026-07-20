@@ -74,7 +74,7 @@ def validate(model,dataloader,criterion,device,epoch,writer):
     return epoch_loss, epoch_acc
 
 
-def run_pipeline(config,train_df=None,val_df=None):
+def run_pipeline(config):
     """
     Execute the complete training pipeline.
 
@@ -88,13 +88,7 @@ def run_pipeline(config,train_df=None,val_df=None):
     model_cfg = config["model"]
     train_cfg = config["training_parameters"]
     hardware_cfg = config["hardware"]
-
-    if train_df is None:
-        print(f"Loading training data from: {paths['train_csv']}")
-        train_df = pd.read_csv(paths["train_csv"])
-    if val_df is None:
-        print(f"Loading validation data from: {paths['val_csv']}")
-        val_df = pd.read_csv(paths["val_csv"])
+    
 
     # reproducibility 
     torch.manual_seed(train_cfg["seed"])
