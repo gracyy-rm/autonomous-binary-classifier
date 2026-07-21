@@ -14,9 +14,10 @@ class AutonomousClassifier(nn.Module):
 
         # Classification head
         self.classifier = nn.Sequential(
+            nn.Dropout(p=0.4),
             nn.Linear(in_features, 256),
             nn.ReLU(),
-            nn.Dropout(p=0.4),  
+            nn.Dropout(p=0.3),  
             nn.Linear(256, num_classes)
         )
             

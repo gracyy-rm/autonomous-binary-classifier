@@ -155,16 +155,17 @@ def run_pipeline(config):
     #optimiser
     # --- UPDATED OPTIMIZER (Differential Learning Rates) ---
     # Separate parameters into backbone and classification head
-    backbone_params = [p for name, p in model.named_parameters() if "fc" not in name and p.requires_grad]
-    head_params = [p for name, p in model.named_parameters() if "fc" in name and p.requires_grad]
+    backbone_params = [p for name, p in model.named_parameters() if "backbone" in name and p.requires_grad]
+    head_params = [p for name, p in model.named_parameters() if "classifier" in name and p.requires_grad]
 
     base_lr = train_cfg["learning_rate"] 
 
     optimizer = torch.optim.AdamW([
-        {'params': backbone_params, 'lr': base_lr * 0.01},  # Gentle tweaks for pre-trained weights (e.g., 1e-5)
+        {'params': backbone_params, 'lr': 1e-5},  # Gentle tweaks for pre-trained weights (e.g., 1e-5)
         {'params': head_params,     'lr': base_lr}         # Standard LR for new head (e.g., 1e-3)
     ], weight_decay=1e-2)
-
+    print(f"Backbone Params Count: {len(backbone_params)}")
+    print(f"Classifier Head Params Count: {len(head_params)}")
     # LR-Scheduler
     scheduler = ReduceLROnPlateau(
         optimizer=optimizer,
