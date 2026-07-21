@@ -153,17 +153,26 @@ def run_pipeline(config):
     criterion = nn.BCEWithLogitsLoss()
 
     #optimiser
-    optimizer = torch.optim.Adam(
-        filter(lambda p: p.requires_grad, model.parameters()),
-        lr=train_cfg["learning_rate"]
-    )
+    # --- UPDATED OPTIMIZER (Differential Learning Rates) ---
+    # Separate parameters into backbone and classification head
+    backbone_params = [p for name, p in model.named_parameters() if "fc" not in name and p.requires_grad]
+    head_params = [p for name, p in model.named_parameters() if "fc" in name and p.requires_grad]
+
+    base_lr = train_cfg["learning_rate"] 
+
+    optimizer = torch.optim.AdamW([
+        {'params': backbone_params, 'lr': base_lr * 0.01},  # Gentle tweaks for pre-trained weights (e.g., 1e-5)
+        {'params': head_params,     'lr': base_lr}         # Standard LR for new head (e.g., 1e-3)
+    ], weight_decay=1e-2)
+
     # LR-Scheduler
     scheduler = ReduceLROnPlateau(
         optimizer=optimizer,
         mode="min",
         factor=0.1,
         patience=2,
-        min_lr=1e-6
+        min_lr=1e-3,
+        threshold=1e-6
     )
 
     # Training Loop
@@ -195,13 +204,11 @@ def run_pipeline(config):
             writer=writer
         )
         scheduler.step(val_loss)
+
         # tensorboard will show the lr chaning over time 
-        current_lr = optimizer.param_groups[0]["lr"]
-        writer.add_scalar(
-            "Learning Rate",
-            current_lr,
-            epoch 
-        )
+        # Log both backbone and head learning rates
+        writer.add_scalar("Learning Rate/Backbone", optimizer.param_groups[0]["lr"], epoch)
+        writer.add_scalar("Learning Rate/Head", optimizer.param_groups[1]["lr"], epoch)
 
         print(
             f"Epoch [{epoch}/{train_cfg['epochs']}] | "
