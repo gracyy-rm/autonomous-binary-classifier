@@ -168,7 +168,10 @@ def run_pipeline(config):
     ).to(device)
 
     # loss function 
-    criterion = nn.BCEWithLogitsLoss()
+    # Loss function with positive class weighting for Obstacle detection
+    # pos_weight > 1.0 penalizes missing obstacles (False Negatives) 2x more than false alarms
+    pos_weight = torch.tensor([2.0]).to(device)
+    criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
 
     # Optimizer with Differential Learning Rates
     backbone_params = list(model.backbone.parameters())
@@ -234,7 +237,7 @@ def run_pipeline(config):
             f"Train Loss : {train_loss:.4f} | "
             f"Train Acc : {train_acc*100:.2f}% | "
             f"Val Loss : {val_loss:.4f} | "
-            f"Val Acc : {val_acc*100:.2f}%"
+            f"Val Acc : {val_acc*100:.2f}% |"
             f"Precision : {val_precision:.3f} | Recall : {val_recall:.3f} | F1 : {val_f1:.3f}"
         )
 
