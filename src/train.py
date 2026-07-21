@@ -170,7 +170,7 @@ def run_pipeline(config):
     # loss function 
     # Loss function with positive class weighting for Obstacle detection
     # pos_weight > 1.0 penalizes missing obstacles (False Negatives) 2x more than false alarms
-    pos_weight = torch.tensor([2.0]).to(device)
+    pos_weight = torch.tensor([3.0]).to(device)
     criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
 
     # Optimizer with Differential Learning Rates
