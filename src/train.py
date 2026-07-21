@@ -155,8 +155,8 @@ def run_pipeline(config):
     #optimiser
     # --- UPDATED OPTIMIZER (Differential Learning Rates) ---
     # Separate parameters into backbone and classification head
-    backbone_params = [p for name, p in model.named_parameters() if "backbone" in name and p.requires_grad]
-    head_params = [p for name, p in model.named_parameters() if "classifier" in name and p.requires_grad]
+    backbone_params = list(model.backbone.parameters())
+    head_params = list(model.classifier.parameters())
 
     base_lr = train_cfg["learning_rate"] 
 
@@ -166,6 +166,12 @@ def run_pipeline(config):
     ], weight_decay=1e-2)
     print(f"Backbone Params Count: {len(backbone_params)}")
     print(f"Classifier Head Params Count: {len(head_params)}")
+    if len(backbone_params) == 0 or len(head_params) == 0:
+        raise ValueError("CRITICAL: One of your parameter groups is empty! Check naming in model.named_parameters().")
+    
+    for i, group in enumerate(optimizer.param_groups):
+        print(f"Param Group {i} LR: {group['lr']} | Params: {len(group['params'])}")
+    print("--------------------------------\n")
     # LR-Scheduler
     scheduler = ReduceLROnPlateau(
         optimizer=optimizer,
