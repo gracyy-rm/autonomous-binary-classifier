@@ -6,7 +6,7 @@
         "model_save_dir": "saved_models/"
     },
     "model": {
-        "architecture": "resnet18",
+        "architecture": "efficientnet_b0",
         "pretrained": true,
         "num_classes": 1,
         "freeze_backbone": false 
