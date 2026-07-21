@@ -16,8 +16,8 @@ def get_data_transforms(img_size=224):
     train_transform = transforms.Compose([
         transforms.Resize((img_size, img_size)),
         transforms.RandomHorizontalFlip(p=0.5),
-        transforms.RandomRotation(15),
-        transforms.ColorJitter(brightness=0.1, contrast=0.1),
+        transforms.ColorJitter(brightness=0.1, contrast=0.3,saturation=0.2),
+        transforms.RandomPerspective(distortion_scale=0.2, p=0.4),
         transforms.ToTensor(),
         transforms.Normalize(mean=IMAGE_MEAN, std=IMAGE_STD)
     ])

@@ -21,7 +21,7 @@
         "batch_size": 32,
         "learning_rate": 0.001,
         "epochs": 25 ,
-        "image_size": 224,
+        "image_size": 288,
         "seed": 1,
         "accumulation_steps": 4,
         "early_stopping_patience" : 6

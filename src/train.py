@@ -9,6 +9,7 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 from .model import create_model
 from .dataset import AutonomousBinaryDataset, get_data_transforms
+from sklearn.metrics import precision_score,recall_score,f1_score
 
 def train_one_epoch(model,dataloader,criterion,optimizer,device,epoch,writer,accumulation_steps=4):
     """Runs a single training epoch with Gradient Accumulation and TensorBoard logging."""
@@ -55,6 +56,9 @@ def validate(model,dataloader,criterion,device,epoch,writer):
     correct_predictions = 0
     total_samples  =0
 
+    all_labels = []
+    all_preds=[]
+
     progress_bar = tqdm(dataloader,desc=f"Epoch {epoch} [Val]",leave=False)
     for images,labels in progress_bar:
         images=images.to(device)
@@ -67,12 +71,26 @@ def validate(model,dataloader,criterion,device,epoch,writer):
         predictions =(logits >= 0.0).float()
         correct_predictions += (predictions == labels).sum().item()
         total_samples += images.size(0)
+
+        #collect targets and predictions
+        all_labels.extend(labels.cpu().squeeze().numpy())
+        all_preds.extend(predictions.cpu().squeeze().numpy())
+
     epoch_loss = running_loss / total_samples
     epoch_acc = correct_predictions / total_samples
+
+    precision = precision_score(all_labels, all_preds, zero_division=0)
+    recall = recall_score(all_labels, all_preds, zero_division=0)
+    f1 = f1_score(all_labels, all_preds, zero_division=0)
+    
+    # Log metrics to TensorBoard
     writer.add_scalar("Loss/Validation", epoch_loss, epoch)
     writer.add_scalar("Accuracy/Validation", epoch_acc * 100, epoch)
-    return epoch_loss, epoch_acc
+    writer.add_scalar("Metrics/Precision", precision, epoch)
+    writer.add_scalar("Metrics/Recall", recall, epoch)
+    writer.add_scalar("Metrics/F1_Score", f1, epoch)
 
+    return epoch_loss, epoch_acc, precision, recall, f1
 
 def run_pipeline(config):
     """
@@ -152,9 +170,7 @@ def run_pipeline(config):
     # loss function 
     criterion = nn.BCEWithLogitsLoss()
 
-    #optimiser
-    # --- UPDATED OPTIMIZER (Differential Learning Rates) ---
-    # Separate parameters into backbone and classification head
+    # Optimizer with Differential Learning Rates
     backbone_params = list(model.backbone.parameters())
     head_params = list(model.classifier.parameters())
 
@@ -166,20 +182,15 @@ def run_pipeline(config):
     ], weight_decay=1e-2)
     print(f"Backbone Params Count: {len(backbone_params)}")
     print(f"Classifier Head Params Count: {len(head_params)}")
-    if len(backbone_params) == 0 or len(head_params) == 0:
-        raise ValueError("CRITICAL: One of your parameter groups is empty! Check naming in model.named_parameters().")
-    
-    for i, group in enumerate(optimizer.param_groups):
-        print(f"Param Group {i} LR: {group['lr']} | Params: {len(group['params'])}")
-    print("--------------------------------\n")
+
     # LR-Scheduler
     scheduler = ReduceLROnPlateau(
         optimizer=optimizer,
         mode="min",
         factor=0.1,
         patience=2,
-        min_lr=1e-3,
-        threshold=1e-6
+        min_lr=1e-6,
+        threshold=1e-3
     )
 
     # Training Loop
@@ -202,7 +213,7 @@ def run_pipeline(config):
             accumulation_steps=train_cfg["accumulation_steps"]
         )
 
-        val_loss, val_acc = validate(
+        val_loss, val_acc, val_precision, val_recall, val_f1 = validate(
             model=model,
             dataloader=val_loader,
             criterion=criterion,
@@ -210,6 +221,7 @@ def run_pipeline(config):
             epoch=epoch,
             writer=writer
         )
+
         scheduler.step(val_loss)
 
         # tensorboard will show the lr chaning over time 
@@ -223,36 +235,28 @@ def run_pipeline(config):
             f"Train Acc : {train_acc*100:.2f}% | "
             f"Val Loss : {val_loss:.4f} | "
             f"Val Acc : {val_acc*100:.2f}%"
+            f"Precision : {val_precision:.3f} | Recall : {val_recall:.3f} | F1 : {val_f1:.3f}"
         )
 
         if val_loss < best_val_loss-min_delta:
-
             best_val_loss = val_loss
-
             early_stopping_counter = 0
-
             save_path = os.path.join(
                 paths["model_save_dir"],
                 f"best_{model_cfg['architecture']}.pth"
             )
-
             torch.save(model.state_dict(), save_path)
-
             print(f"Best model saved to {save_path}")
 
         else:
-
             early_stopping_counter += 1
-
             print(
                 f"No improvement for "
                 f"{early_stopping_counter} epoch(s)."
             )
 
             if early_stopping_counter >= early_stopping_patience:
-
                 print("\nEarly stopping triggered.")
-
                 break
 
     writer.close()
