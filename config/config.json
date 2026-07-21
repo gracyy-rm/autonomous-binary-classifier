@@ -1,5 +1,7 @@
 {
     "paths": {
+        "train_csv" :"",
+        "val_csv" : "",
         "log_dir": "logs/",
         "model_save_dir": "saved_models/"
     },
@@ -18,7 +20,7 @@
     "training_parameters": {
         "batch_size": 32,
         "learning_rate": 0.001,
-        "epochs": 10 ,
+        "epochs": 30 ,
         "image_size": 224,
         "seed": 1,
         "accumulation_steps": 4,

@@ -163,7 +163,7 @@ def run_pipeline(config):
         mode="min",
         factor=0.1,
         patience=2,
-        min_lr=1e-6
+        min_lr=1e-3
     )
 
     # Training Loop
