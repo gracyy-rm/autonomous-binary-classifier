@@ -238,15 +238,23 @@ class BinaryClassifierInference:
         print(f"\n--- Starting Batch Inference on {len(dataset):,} images ---")
         print(f"Device: {self.device} | Batch Size: {batch_size} | Decision Threshold: {decision_threshold}\n")
 
-        for batch_tensors, batch_paths, batch_names, batch_valid in tqdm(dataloader, desc="Processing Batches"):
+        for batch_idx, (batch_tensors, batch_paths, batch_names, batch_valid) in enumerate(tqdm(dataloader, desc="Processing Batches")):
             batch_tensors = batch_tensors.to(self.device, non_blocking=True)
 
+            # Compute logits
             logits = self.model(batch_tensors).squeeze(-1)
             probabilities = torch.sigmoid(logits)
 
-            logits_np = logits.cpu().numpy()
-            probs_np = probabilities.cpu().numpy()
+            # Move directly to CPU & detach immediately to free GPU memory
+            logits_np = logits.detach().cpu().numpy()
+            probs_np = probabilities.detach().cpu().numpy()
 
+            # Free batch tensor from GPU memory
+            del batch_tensors, logits, probabilities
+
+            # Periodically clear CUDA memory cache every 50 batches
+            if batch_idx % 50 == 0:
+                torch.cuda.empty_cache()
             for i in range(len(batch_paths)):
                 if not batch_valid[i]:
                     continue
