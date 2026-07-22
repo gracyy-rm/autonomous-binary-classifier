@@ -202,63 +202,66 @@ class BinaryClassifierInference:
             "raw_logit": round(logit, 4)
         }
     
+    @torch.no_grad()
     def predict_csv_batch(
-            self, 
-            csv_path,
-            batch_size=128,
-            num_workers=4,
-            decision_threshold=0.50,
-            uncertainty_range=(0.40, 0.60)):
+        self,
+        csv_path,
+        batch_size=32,
+        num_workers=4,
+        decision_threshold=0.50,
+        uncertainty_range=(0.40, 0.60)
+    ):
         """
-        Run high-throughout batch inference across a CSV containing image paths.
+        Run high-throughput batch inference across a CSV containing image paths.
         """
-
         if not os.path.exists(csv_path):
-            raise FileNotFoundError(
-                f"Folder not found: {csv_path}"
-            )
+            raise FileNotFoundError(f"Input CSV not found at {csv_path}")
+
         input_df = pd.read_csv(csv_path)
         if "image_path" not in input_df.columns:
-            raise KeyError("Input CSV must contain an 'image_path'.")
-        
+            raise KeyError("Input CSV must contain an 'image_path' column.")
+
         dataset = InferenceDataset(
             df=input_df,
             transform=self.transform,
+            img_size=self.image_size
         )
 
         dataloader = DataLoader(
-            dataset=dataset,
+            dataset,
             batch_size=batch_size,
             shuffle=False,
             num_workers=num_workers,
-            pin_memory=True  if self.device.type=="cuda" else False
+            pin_memory=True if self.device.type == "cuda" else False
         )
 
         results = []
-        print(f"\n--- Starting Batch Inference on {len(dataset):,} images ---")
-        print(f"Device: {self.device} | Batch Size: {batch_size} | Decision Threshold: {decision_threshold}\n")
 
-        for batch_idx, (batch_tensors, batch_paths, batch_names, batch_valid) in enumerate(tqdm(dataloader, desc="Processing Batches")):
+        print(f"\n--- Starting Batch Inference on {len(dataset):,} images ---")
+        print(f"Device: {self.device} | Batch Size: {batch_size} | Threshold: {decision_threshold}\n")
+
+        for batch_tensors, batch_paths, batch_names, batch_valid in tqdm(dataloader, desc="Processing Batches"):
             batch_tensors = batch_tensors.to(self.device, non_blocking=True)
 
-            # Compute logits
-            logits = self.model(batch_tensors).squeeze(-1)
+            # Pass batch through model
+            logits = self.model(batch_tensors)
+            
+            # Ensure shape is flattened 1D tensor [batch_size]
+            if logits.dim() > 1:
+                logits = logits.view(-1)
+                
             probabilities = torch.sigmoid(logits)
 
-            # Move directly to CPU & detach immediately to free GPU memory
+            # Explicitly extract to CPU numpy arrays
             logits_np = logits.detach().cpu().numpy()
             probs_np = probabilities.detach().cpu().numpy()
 
-            # Free batch tensor from GPU memory
-            del batch_tensors, logits, probabilities
-
-            # Periodically clear CUDA memory cache every 50 batches
-            if batch_idx % 50 == 0:
-                torch.cuda.empty_cache()
             for i in range(len(batch_paths)):
+                # Skip invalid images if any failed to load
                 if not batch_valid[i]:
                     continue
 
+                # Read actual values from numpy arrays
                 prob = float(probs_np[i])
                 logit = float(logits_np[i])
 
