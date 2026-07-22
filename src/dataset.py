@@ -62,6 +62,47 @@ class AutonomousBinaryDataset(Dataset):
             image = self.transform(image)
             
         return image, label
+    
+
+class InferenceDataset(Dataset):
+    """
+    Dataset optimized for fast batch inference across 67k+ unlabelled images.
+    
+    Returns preprocessed tensor, original image path, and image filename.
+    Safely handles corrupt or missing images without crashing.
+    """
+    def __init__(self, df, transform=None):
+        """
+        Parameters
+        ----------
+        df : pandas.DataFrame
+            DataFrame containing at least an 'image_path' column.
+        transform : torchvision.transforms.Compose, optional
+            Deterministic validation/inference transform.
+        """
+        self.df = df
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.df)
+
+    def __getitem__(self, idx):
+        img_path = str(self.df.iloc[idx]["image_path"])
+        img_name = os.path.basename(img_path)
+
+        try:
+            image = Image.open(img_path).convert("RGB")
+            if self.transform:
+                image_tensor = self.transform(image)
+            is_valid = True
+        except Exception as e:
+            # Fallback for corrupt/missing files: return zero tensor & flag error
+            print(f"Warning: Failed to load image at {img_path}. Error: {e}")
+            # Assuming standard image size from transform or default 224
+            image_tensor = torch.zeros((3, 224, 224), dtype=torch.float32)
+            is_valid = False
+
+        return image_tensor, img_path, img_name, is_valid
 
 
 # Local Pipeline Sanity Check
