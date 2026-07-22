@@ -224,7 +224,7 @@ class BinaryClassifierInference:
         dataset = InferenceDataset(
             df=input_df,
             transform=self.transform,
-            image_size=self.image_size
+            img_size=self.image_size
         )
 
         dataloader = DataLoader(
