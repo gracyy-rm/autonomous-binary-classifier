@@ -198,7 +198,7 @@ def run_pipeline(config):
     )'''
     scheduler = CosineAnnealingLR(
         optimizer=optimizer,
-        T_max=train_cfg["num_epochs"],
+        T_max=train_cfg["epochs"],
         eta_min=1e-6
     )
     # Print Model Architecture Summary
