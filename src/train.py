@@ -166,7 +166,6 @@ def run_pipeline(config):
         num_classes=1,
         freeze_backbone=model_cfg["freeze_backbone"]
     ).to(device)
-    print(model.summary())
 
     # loss function 
     # Loss function with positive class weighting for Obstacle detection
@@ -196,6 +195,19 @@ def run_pipeline(config):
         min_lr=1e-6,
         threshold=1e-3
     )
+    # Print Model Architecture Summary
+    print("\n--- MODEL ARCHITECTURE SUMMARY ---")
+    
+    print(model) 
+    
+    # OPTIONAL: Clean formatted table if torchinfo is installed
+    try:
+        from torchinfo import summary
+        summary(model, input_size=(train_cfg["batch_size"], 3, train_cfg["image_size"], train_cfg["image_size"]))
+    except ImportError:
+        pass
+
+    print("-----------------------------------\n")
 
     # Training Loop
     best_val_loss = float("inf")
@@ -227,14 +239,16 @@ def run_pipeline(config):
         )
 
         scheduler.step(val_loss)
-
+        backbone_lr = optimizer.param_groups[0]["lr"]
+        head_lr = optimizer.param_groups[1]["lr"]
         # tensorboard will show the lr chaning over time 
         # Log both backbone and head learning rates
-        writer.add_scalar("Learning Rate/Backbone", optimizer.param_groups[0]["lr"], epoch)
-        writer.add_scalar("Learning Rate/Head", optimizer.param_groups[1]["lr"], epoch)
+        writer.add_scalar("Learning Rate/Backbone", backbone_lr, epoch)
+        writer.add_scalar("Learning Rate/Head", base_lr, epoch)
 
         print(
             f"Epoch [{epoch}/{train_cfg['epochs']}] | "
+            f"LR (Backbone: {backbone_lr:.1e}, Head: {head_lr:.1e}) | " 
             f"Train Loss : {train_loss:.4f} | "
             f"Train Acc : {train_acc*100:.2f}% | "
             f"Val Loss : {val_loss:.4f} | "
