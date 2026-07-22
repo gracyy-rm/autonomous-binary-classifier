@@ -166,6 +166,7 @@ def run_pipeline(config):
         num_classes=1,
         freeze_backbone=model_cfg["freeze_backbone"]
     ).to(device)
+    print(model.summary())
 
     # loss function 
     # Loss function with positive class weighting for Obstacle detection
