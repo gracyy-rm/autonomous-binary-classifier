@@ -309,7 +309,7 @@ class BinaryClassifierInference:
             sample_df = df[df["pred_label"] == 0].sort_values(by="raw_prob", ascending=True).head(num_samples)
             title_prefix = "Top Confidence Clear Road Predictions"
         else:
-            sample_df = df.sample(n=min(num_samples, len(df)), random_state=42)
+            sample_df = df.sample(n=min(num_samples, len(df)))
             title_prefix = "Random Sample Predictions"
 
         num_images = len(sample_df)
