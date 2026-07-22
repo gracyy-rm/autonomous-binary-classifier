@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 from .model import create_model
 from .dataset import AutonomousBinaryDataset, get_data_transforms
 from sklearn.metrics import precision_score,recall_score,f1_score
+from torchinfo import summary
 
 def train_one_epoch(model,dataloader,criterion,optimizer,device,epoch,writer,accumulation_steps=4):
     """Runs a single training epoch with Gradient Accumulation and TensorBoard logging."""
@@ -197,16 +198,7 @@ def run_pipeline(config):
     )
     # Print Model Architecture Summary
     print("\n--- MODEL ARCHITECTURE SUMMARY ---")
-    
-    print(model) 
-    
-    # OPTIONAL: Clean formatted table if torchinfo is installed
-    try:
-        from torchinfo import summary
-        summary(model, input_size=(train_cfg["batch_size"], 3, train_cfg["image_size"], train_cfg["image_size"]))
-    except ImportError:
-        pass
-
+    summary(model, input_size=(train_cfg["batch_size"], 3, train_cfg["image_size"], train_cfg["image_size"]))
     print("-----------------------------------\n")
 
     # Training Loop
