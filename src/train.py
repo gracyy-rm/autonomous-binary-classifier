@@ -1,7 +1,7 @@
 import os
 import torch
 import torch.nn as nn
-from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch.optim.lr_scheduler import ReduceLROnPlateau,CosineAnnealingLR
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 import pandas as pd
@@ -188,13 +188,18 @@ def run_pipeline(config):
     print(f"Classifier Head Params Count: {len(head_params)}")
 
     # LR-Scheduler
-    scheduler = ReduceLROnPlateau(
+    '''scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer=optimizer,
         mode="min",
         factor=0.1,
         patience=2,
         min_lr=1e-6,
         threshold=1e-3
+    )'''
+    scheduler = CosineAnnealingLR(
+        optimizer=optimizer,
+        T_max=train_cfg["num_epochs"],
+        eta_min=1e-6
     )
     # Print Model Architecture Summary
     print("\n--- MODEL ARCHITECTURE SUMMARY ---")
@@ -230,7 +235,7 @@ def run_pipeline(config):
             writer=writer
         )
 
-        scheduler.step(val_loss)
+        scheduler.step()
         backbone_lr = optimizer.param_groups[0]["lr"]
         head_lr = optimizer.param_groups[1]["lr"]
         # tensorboard will show the lr chaning over time 
