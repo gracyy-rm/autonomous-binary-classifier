@@ -49,7 +49,7 @@ class BinaryClassifierInference:
 
         self.model_path = os.path.join(
             paths["model_save_dir"],
-            f"best_{self.model_name}.pth"
+            paths["model_filename"]
         )
         self.class_names = {
             0: "No Obstacle",

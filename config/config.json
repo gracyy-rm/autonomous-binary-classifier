@@ -3,7 +3,8 @@
         "train_csv" :"",
         "val_csv" : "",
         "log_dir": "logs/",
-        "model_save_dir": "saved_models/"
+        "model_save_dir": "saved_models/",
+        "model_filename": "best_efficientnet_b0_cosine_lr.pth"
     },
     "model": {
         "architecture": "efficientnet_b0",
