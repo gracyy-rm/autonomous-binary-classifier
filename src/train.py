@@ -191,7 +191,7 @@ def run_pipeline(config):
 
     base_lr = train_cfg["learning_rate"] 
 
-    optimizer = torch.optim.AdamW(lr=base_lr, weight_decay=1e-2)
+    optimizer = torch.optim.AdamW(params=model.parameters(),lr=base_lr, weight_decay=1e-2)
     print(f"Backbone Params Count: {len(backbone_params)}")
     print(f"Classifier Head Params Count: {len(head_params)}")
 
