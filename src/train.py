@@ -18,6 +18,8 @@ def train_one_epoch(model,dataloader,criterion,optimizer,device,epoch,writer,acc
     running_loss=0.0
     correct_predictions = 0
     total_samples = 0
+    all_labels_train=[]
+    all_preds_train=[]
 
     optimizer.zero_grad(set_to_none=True)
     progress_bar = tqdm(dataloader, desc =f"Epoch {epoch}[Train]",leave=False)
@@ -41,12 +43,21 @@ def train_one_epoch(model,dataloader,criterion,optimizer,device,epoch,writer,acc
         correct_predictions += (predictions==labels).sum().item()
         total_samples += images.size(0)
 
+        all_labels_train.extend(labels.cpu().squeeze().numpy())
+        all_preds_train.extend(predictions.cpu().squeeze().numpy())
     epoch_loss = running_loss/total_samples
     epoch_acc = correct_predictions/total_samples
+    train_precision = precision_score(all_labels_train, all_preds_train, zero_division=0)
+    train_recall = recall_score(all_labels_train, all_preds_train, zero_division=0)
+    train_f1 = f1_score(all_labels_train, all_preds_train, zero_division=0)
 
     writer.add_scalar("Loss/Train", epoch_loss, epoch)
     writer.add_scalar("Accuracy/Train", epoch_acc * 100, epoch)
-    return epoch_loss,epoch_acc
+    writer.add_scalar("Metrics/Train_Precision", train_precision, epoch)
+    writer.add_scalar("Metrics/Train_Recall", train_recall, epoch)
+    writer.add_scalar("Metrics/Train_F1_Score", train_f1, epoch)
+
+    return epoch_loss,epoch_acc,train_precision,train_recall,train_f1
 
 
 @torch.no_grad()
@@ -57,8 +68,8 @@ def validate(model,dataloader,criterion,device,epoch,writer):
     correct_predictions = 0
     total_samples  =0
 
-    all_labels = []
-    all_preds=[]
+    all_labels_val = []
+    all_preds_val=[]
 
     progress_bar = tqdm(dataloader,desc=f"Epoch {epoch} [Val]",leave=False)
     for images,labels in progress_bar:
@@ -74,24 +85,24 @@ def validate(model,dataloader,criterion,device,epoch,writer):
         total_samples += images.size(0)
 
         #collect targets and predictions
-        all_labels.extend(labels.cpu().squeeze().numpy())
-        all_preds.extend(predictions.cpu().squeeze().numpy())
+        all_labels_val.extend(labels.cpu().squeeze().numpy())
+        all_preds_val.extend(predictions.cpu().squeeze().numpy())
 
     epoch_loss = running_loss / total_samples
     epoch_acc = correct_predictions / total_samples
 
-    precision = precision_score(all_labels, all_preds, zero_division=0)
-    recall = recall_score(all_labels, all_preds, zero_division=0)
-    f1 = f1_score(all_labels, all_preds, zero_division=0)
+    val_precision = precision_score(all_labels_val, all_preds_val, zero_division=0)
+    val_recall = recall_score(all_labels_val, all_preds_val, zero_division=0)
+    val_f1 = f1_score(all_labels_val, all_preds_val, zero_division=0)
     
     # Log metrics to TensorBoard
     writer.add_scalar("Loss/Validation", epoch_loss, epoch)
     writer.add_scalar("Accuracy/Validation", epoch_acc * 100, epoch)
-    writer.add_scalar("Metrics/Precision", precision, epoch)
-    writer.add_scalar("Metrics/Recall", recall, epoch)
-    writer.add_scalar("Metrics/F1_Score", f1, epoch)
+    writer.add_scalar("Metrics/Precision", val_precision, epoch)
+    writer.add_scalar("Metrics/Recall", val_recall, epoch)
+    writer.add_scalar("Metrics/F1_Score", val_f1, epoch)
 
-    return epoch_loss, epoch_acc, precision, recall, f1
+    return epoch_loss, epoch_acc, val_precision, val_recall, val_f1
 
 def run_pipeline(config):
     """
@@ -215,7 +226,7 @@ def run_pipeline(config):
 
     for epoch in range(1, train_cfg["epochs"] + 1):
 
-        train_loss, train_acc = train_one_epoch(
+        train_loss, train_acc, train_precision, train_recall, train_f1 = train_one_epoch(
             model=model,
             dataloader=train_loader,
             criterion=criterion,
@@ -248,9 +259,11 @@ def run_pipeline(config):
             f"LR (Backbone: {backbone_lr:.1e}, Head: {head_lr:.1e}) | " 
             f"Train Loss : {train_loss:.4f} | "
             f"Train Acc : {train_acc*100:.2f}% | "
+            f"Train Precision : {train_precision:.3f} | Train Recall : {train_recall:.3f} | Train F1 : {train_f1:.3f} | "
             f"Val Loss : {val_loss:.4f} | "
             f"Val Acc : {val_acc*100:.2f}% |"
-            f"Precision : {val_precision:.3f} | Recall : {val_recall:.3f} | F1 : {val_f1:.3f}"
+            f"Val Precision : {val_precision:.3f} | Val Recall : {val_recall:.3f} | Val F1 : {val_f1:.3f}"
+            
         )
 
         if val_loss < best_val_loss-min_delta:
