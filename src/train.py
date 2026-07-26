@@ -191,10 +191,7 @@ def run_pipeline(config):
 
     base_lr = train_cfg["learning_rate"] 
 
-    optimizer = torch.optim.AdamW([
-        {'params': backbone_params, 'lr': 1e-5},  # Gentle tweaks for pre-trained weights (e.g., 1e-5)
-        {'params': head_params,     'lr': base_lr}         # Standard LR for new head (e.g., 1e-3)
-    ], weight_decay=1e-2)
+    optimizer = torch.optim.AdamW(lr=base_lr, weight_decay=1e-2)
     print(f"Backbone Params Count: {len(backbone_params)}")
     print(f"Classifier Head Params Count: {len(head_params)}")
 
@@ -251,7 +248,7 @@ def run_pipeline(config):
         head_lr = optimizer.param_groups[1]["lr"]
         # tensorboard will show the lr chaning over time 
         # Log both backbone and head learning rates
-        writer.add_scalar("Learning Rate/Backbone", backbone_lr, epoch)
+        # writer.add_scalar("Learning Rate/Backbone", backbone_lr, epoch)
         writer.add_scalar("Learning Rate/Head", base_lr, epoch)
 
         print(

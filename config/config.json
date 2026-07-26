@@ -4,7 +4,7 @@
         "val_csv" : "",
         "log_dir": "logs/",
         "model_save_dir": "saved_models/",
-        "model_filename": "best_efficientnet_b0_cosine_lr.pth"
+        "model_filename": "best_efficientnet_b0_1.pth"
     },
     "model": {
         "architecture": "resnet18",
@@ -22,7 +22,7 @@
         "batch_size": 32,
         "learning_rate": 1e-3,
         "epochs": 25 ,
-        "image_size": 288,
+        "image_size": 256,
         "seed": 1,
         "accumulation_steps": 4,
         "early_stopping_patience" : 6
