@@ -7,7 +7,7 @@
         "model_filename": "best_efficientnet_b0_cosine_lr.pth"
     },
     "model": {
-        "architecture": "efficientnet_b0",
+        "architecture": "resnet18",
         "pretrained": true,
         "num_classes": 1,
         "freeze_backbone": false 
