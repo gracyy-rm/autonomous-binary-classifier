@@ -202,7 +202,7 @@ def run_pipeline(config):
         factor=0.5,
         patience=5,
         min_lr=1e-6,
-        threshold=0.1
+        # threshold=0.1
     )
     # scheduler = CosineAnnealingLR(
     #     optimizer=optimizer,
@@ -243,7 +243,7 @@ def run_pipeline(config):
             writer=writer
         )
 
-        scheduler.step()
+        scheduler.step(val_loss)
         # backbone_lr = optimizer.param_groups[0]["lr"]
         current_training_lr = optimizer.param_groups[0]["lr"]
         # tensorboard will show the lr chaning over time 
