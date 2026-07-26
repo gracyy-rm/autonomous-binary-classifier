@@ -244,8 +244,8 @@ def run_pipeline(config):
         )
 
         scheduler.step()
-        backbone_lr = optimizer.param_groups[0]["lr"]
-        head_lr = optimizer.param_groups[1]["lr"]
+        # backbone_lr = optimizer.param_groups[0]["lr"]
+        current_training_lr = optimizer.param_groups[0]["lr"]
         # tensorboard will show the lr chaning over time 
         # Log both backbone and head learning rates
         # writer.add_scalar("Learning Rate/Backbone", backbone_lr, epoch)
@@ -253,7 +253,7 @@ def run_pipeline(config):
 
         print(
             f"Epoch [{epoch}/{train_cfg['epochs']}] | "
-            f"LR (Backbone: {backbone_lr:.1e}, Head: {head_lr:.1e}) | " 
+            f"LR : {current_training_lr:.1e} | " 
             f"Train Loss : {train_loss:.4f} | "
             f"Train Acc : {train_acc*100:.2f}% | "
             f"Train Precision : {train_precision:.3f} | Train Recall : {train_recall:.3f} | Train F1 : {train_f1:.3f} | "
