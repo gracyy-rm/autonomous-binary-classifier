@@ -10,7 +10,7 @@
         "architecture": "resnet18",
         "pretrained": true,
         "num_classes": 1,
-        "freeze_backbone": false 
+        "freeze_backbone": true 
     },
     "classes": {
         "mapping": {
@@ -24,8 +24,10 @@
         "epochs": 25 ,
         "image_size": 256,
         "seed": 1,
-        "accumulation_steps": 4,
-        "early_stopping_patience" : 25
+        "accumulation_steps": 2,
+        "early_stopping_patience" : 8,
+        "weight_decay": 0.05,
+        "pos_weights":1.0
     },
     "hardware": {
         "num_workers": 4
