@@ -92,21 +92,20 @@ class BinaryClassifierInference:
             raise FileNotFoundError(
                 f"Model checkpoint not found: {self.model_path}"
             )
+        checkpoint = torch.load(self.model_path, map_location=self.device)
+        if isinstance(checkpoint, dict) and "state_dict" in checkpoint:
+            state_dict = checkpoint["state_dict"]
+            model_name = checkpoint.get("architecture", self.model_name)
+        else:
+            state_dict = checkpoint
+            model_name = getattr(self, 'model_name', 'resnet18')
 
         model = create_model(
-            model_name=self.model_name,
+            model_name=model_name,
             num_classes=1,
             freeze_backbone=False
         )
-
-        model.load_state_dict(
-            torch.load(
-                self.model_path,
-                map_location=self.device
-            )
-        )
-        checkpoint = torch.load(self.model_path, map_location=self.device)
-        model.load_state_dict(checkpoint)
+        model.load_state_dict(state_dict)
         model.to(self.device)
         model.eval()
 

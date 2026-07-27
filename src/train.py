@@ -321,7 +321,14 @@ def run_pipeline(config):
                 paths["model_save_dir"],
                 f"best_{model_cfg['architecture']}_acc{val_acc*100:.1f}.pth"
             )
-            torch.save(model.state_dict(), save_path)
+
+            checkpoint = {
+                'architecture' : model_cfg['architecture'],
+                'state_dict' : model.state_dict(),
+                'val_acc':val_acc,
+                'val_loss':val_loss
+            }
+            torch.save(checkpoint, save_path)
             print(f"Best model saved to {save_path} (Val Loss improved by {improvement:.4f})\n")
 
         else:
