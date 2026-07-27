@@ -231,7 +231,7 @@ def run_pipeline(config):
     # pos_weight > 1.0 penalizes missing obstacles (False Negatives) 2x more than false alarms
     pos_weights_val=train_cfg["pos_weights"]
     pos_weight = torch.tensor([pos_weights_val], dtype=torch.float32).to(device)
-    criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weights_val)
+    criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
 
     # Optimizer with Differential Learning Rates
     base_lr = train_cfg["learning_rate"] 
