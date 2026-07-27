@@ -16,10 +16,13 @@ def get_data_transforms(img_size=224):
     train_transform = transforms.Compose([
         transforms.Resize((img_size, img_size)),
         transforms.RandomHorizontalFlip(p=0.5),
-        transforms.ColorJitter(brightness=0.1, contrast=0.3,saturation=0.2),
+        transforms.RandomAffine(degrees=(-5,5),translate=(0.05,0.05),scale=(0.95,1.05)),
+        transforms.ColorJitter(brightness=0.2, contrast=0.2,saturation=0.11,hue=0.02),
         transforms.RandomPerspective(distortion_scale=0.2, p=0.4),
         transforms.ToTensor(),
-        transforms.Normalize(mean=IMAGE_MEAN, std=IMAGE_STD)
+        transforms.Normalize(mean=IMAGE_MEAN, std=IMAGE_STD),
+        transforms.RandomErasing(p=0.2,scale=(0.02, 0.1),ratio=(0.3, 3.3),value='random')
+        
     ])
     
     val_transform = transforms.Compose([
