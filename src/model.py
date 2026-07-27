@@ -46,14 +46,34 @@ def create_model(model_name='resnet18', num_classes=1, freeze_backbone=True):
         backbone.classifier = nn.Identity()
     else:
         raise ValueError(f"Backbone '{model_name}' is not recognized or supported.")
-    
-    if freeze_backbone:
+
+    # --- FREEZING LOGIC ---
+    if freeze_backbone is True or freeze_backbone == 'full':
+        # Freeze ALL backbone parameters
         for param in backbone.parameters():
             param.requires_grad = False
-    else:
+
+    elif freeze_backbone == 'partial':
+        # 1. First freeze everything in the backbone
+        for param in backbone.parameters():
+            param.requires_grad = False
+
+        # 2. Unfreeze only the last layer block based on architecture
+        if model_name == 'resnet18':
+            for param in backbone.layer4.parameters():
+                param.requires_grad = True
+        elif model_name == 'mobilenet_v3':
+            for param in backbone.features[-2:].parameters():
+                param.requires_grad = True
+        elif model_name == 'efficientnet_b0':
+            for param in backbone.features[-1].parameters():
+                param.requires_grad = True
+
+    elif freeze_backbone is False or freeze_backbone == 'none':
+        # Unfreeze ALL backbone parameters
         for param in backbone.parameters():
             param.requires_grad = True
-
+        
     model = AutonomousClassifier(
         backbone=backbone,
         in_features=in_features,

@@ -10,7 +10,7 @@
         "architecture": "resnet18",
         "pretrained": true,
         "num_classes": 1,
-        "freeze_backbone": true 
+        "freeze_backbone": "partial" 
     },
     "classes": {
         "mapping": {
@@ -20,7 +20,7 @@
     },
     "training_parameters": {
         "batch_size": 32,
-        "learning_rate": 5e-4,
+        "learning_rate": 5e-5,
         "epochs": 25 ,
         "image_size": 256,
         "seed": 1,
