@@ -239,19 +239,19 @@ def run_pipeline(config):
     optimizer = torch.optim.AdamW(params=model.parameters(),lr=base_lr, weight_decay=weight_decay)
 
     # LR-Scheduler
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer=optimizer,
-        mode="min",
-        factor=0.5,
-        patience=5,
-        min_lr=1e-6,
-        # threshold=0.1
-    )
-    # scheduler = CosineAnnealingLR(
+    # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
     #     optimizer=optimizer,
-    #     T_max=train_cfg["epochs"],
-    #     eta_min=1e-6
+    #     mode="min",
+    #     factor=0.5,
+    #     patience=5,
+    #     min_lr=1e-6,
+    #     # threshold=0.1
     # )
+    scheduler = CosineAnnealingLR(
+        optimizer=optimizer,
+        T_max=train_cfg["epochs"],
+        eta_min=1e-6
+    )
     # Print Model Architecture Summary
     print("\n--- MODEL ARCHITECTURE SUMMARY ---")
     summary(model, input_size=(train_cfg["batch_size"], 3, train_cfg["image_size"], train_cfg["image_size"]))
@@ -287,7 +287,7 @@ def run_pipeline(config):
             writer=writer
         )
 
-        scheduler.step(val_loss)
+        scheduler.step()
         # backbone_lr = optimizer.param_groups[0]["lr"]
         current_training_lr = optimizer.param_groups[0]["lr"]
         # tensorboard will show the lr chaning over time 
