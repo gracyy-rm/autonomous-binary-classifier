@@ -287,7 +287,7 @@ def run_pipeline(config):
             writer=writer
         )
 
-        scheduler.step()
+        scheduler.step(val_loss)
         # backbone_lr = optimizer.param_groups[0]["lr"]
         current_training_lr = optimizer.param_groups[0]["lr"]
         # tensorboard will show the lr chaning over time 
