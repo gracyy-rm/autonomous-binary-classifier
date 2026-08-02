@@ -4,6 +4,8 @@ import pandas as pd
 from torch.utils.data import Dataset
 import torchvision.transforms as transforms
 from PIL import Image
+import albumentations as A
+from albumentations.pytorch import ToTensorV2
 
 # Global Image Normalization Transforms (Standard ImageNet Weights)
 IMAGE_MEAN = [0.485, 0.456, 0.406]
@@ -13,17 +15,27 @@ def get_data_transforms(img_size=224):
     """
     Defines training and validation transformation pipelines.
     """
+
     train_transform = transforms.Compose([
-        transforms.Resize((img_size, img_size)),
-        transforms.RandomHorizontalFlip(p=0.5),
-        transforms.RandomAffine(degrees=(-5,5),translate=(0.05,0.05),scale=(0.95,1.05)),
-        transforms.ColorJitter(brightness=0.2, contrast=0.2,saturation=0.11,hue=0.02),
-        transforms.RandomPerspective(distortion_scale=0.2, p=0.4),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=IMAGE_MEAN, std=IMAGE_STD),
-        transforms.RandomErasing(p=0.2,scale=(0.02, 0.1),ratio=(0.3, 3.3),value='random')
-        
+    transforms.RandomResizedCrop(img_size, scale=(0.6, 1.0), ratio=(0.8, 1.2)),
+    transforms.RandomHorizontalFlip(p=0.5),
+    transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.3, hue=0.08),
+    transforms.RandomPerspective(distortion_scale=0.2, p=0.4),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=IMAGE_MEAN, std=IMAGE_STD),
+    transforms.RandomErasing(p=0.5, scale=(0.10, 0.30), ratio=(0.3, 3.3), value='random')
     ])
+    # train_transform = transforms.Compose([
+    #     transforms.Resize((img_size, img_size)),
+    #     transforms.RandomHorizontalFlip(p=0.5),
+    #     transforms.RandomAffine(degrees=(-5,5),translate=(0.05,0.05),scale=(0.95,1.05)),
+    #     transforms.ColorJitter(brightness=0.2, contrast=0.2,saturation=0.11,hue=0.02),
+    #     transforms.RandomPerspective(distortion_scale=0.2, p=0.4),
+    #     transforms.ToTensor(),
+    #     transforms.Normalize(mean=IMAGE_MEAN, std=IMAGE_STD),
+    #     transforms.RandomErasing(p=0.2,scale=(0.02, 0.1),ratio=(0.3, 3.3),value='random')
+        
+    # ])
     
     val_transform = transforms.Compose([
         transforms.Resize((img_size, img_size)),
