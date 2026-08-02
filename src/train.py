@@ -241,8 +241,8 @@ def run_pipeline(config):
     # LR-Scheduler
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer=optimizer,
-        mode="min",
-        factor=0.5,
+        mode="max",
+        factor=0.1,
         patience=3,
         min_lr=1e-6,
         # threshold=0.1
@@ -258,7 +258,7 @@ def run_pipeline(config):
     print("-----------------------------------\n")
 
     # Training Loop
-    best_val_loss = float("inf")
+    best_val_acc = float("inf")
     early_stopping_counter = 0
     early_stopping_patience = train_cfg["early_stopping_patience"]
     min_delta = 1e-4
@@ -287,7 +287,7 @@ def run_pipeline(config):
             writer=writer
         )
 
-        scheduler.step(val_loss)
+        scheduler.step(val_acc)
         # backbone_lr = optimizer.param_groups[0]["lr"]
         current_training_lr = optimizer.param_groups[0]["lr"]
         # tensorboard will show the lr chaning over time 
@@ -313,9 +313,9 @@ def run_pipeline(config):
             
         )
 
-        if val_loss < best_val_loss-min_delta:
-            improvement = best_val_loss - min_delta
-            best_val_loss = val_loss
+        if val_acc < best_val_acc-min_delta:
+            improvement = best_val_acc - min_delta
+            best_val_acc = val_acc
             early_stopping_counter = 0
             save_path = os.path.join(
                 paths["model_save_dir"],
