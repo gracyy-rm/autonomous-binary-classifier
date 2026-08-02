@@ -239,19 +239,19 @@ def run_pipeline(config):
     optimizer = torch.optim.AdamW(params=model.parameters(),lr=base_lr, weight_decay=weight_decay)
 
     # LR-Scheduler
-    # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-    #     optimizer=optimizer,
-    #     mode="min",
-    #     factor=0.5,
-    #     patience=5,
-    #     min_lr=1e-6,
-    #     # threshold=0.1
-    # )
-    scheduler = CosineAnnealingLR(
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer=optimizer,
-        T_max=train_cfg["epochs"],
-        eta_min=1e-6
+        mode="min",
+        factor=0.5,
+        patience=5,
+        min_lr=1e-6,
+        # threshold=0.1
     )
+    # scheduler = CosineAnnealingLR(
+    #     optimizer=optimizer,
+    #     T_max=train_cfg["epochs"],
+    #     eta_min=1e-6
+    # )
     # Print Model Architecture Summary
     print("\n--- MODEL ARCHITECTURE SUMMARY ---")
     summary(model, input_size=(train_cfg["batch_size"], 3, train_cfg["image_size"], train_cfg["image_size"]))
@@ -335,7 +335,7 @@ def run_pipeline(config):
             early_stopping_counter += 1
             remaining_patience = early_stopping_patience-early_stopping_counter
             print(
-                f'⚠️ [PATIENCE WARNING] No val_loss improvement for'
+                f' [PATIENCE WARNING] No val_loss improvement for'
                 f' {early_stopping_counter} epoch(s). Strikes:'
                 f' {early_stopping_counter}/{early_stopping_patience} '
                 f'({remaining_patience} left before early stopping)\n'
