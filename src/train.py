@@ -313,8 +313,8 @@ def run_pipeline(config):
             
         )
 
-        if val_acc < best_val_acc-min_delta:
-            improvement = best_val_acc - min_delta
+        if val_acc > best_val_acc + min_delta:
+            improvement = val_acc - best_val_acc
             best_val_acc = val_acc
             early_stopping_counter = 0
             save_path = os.path.join(
@@ -329,13 +329,13 @@ def run_pipeline(config):
                 'val_loss':val_loss
             }
             torch.save(checkpoint, save_path)
-            print(f"Best model saved to {save_path} (Val Loss improved by {improvement:.4f})\n")
+            print(f"Best model saved to {save_path} (Val Acc improved by {improvement:.4f})\n")
 
         else:
             early_stopping_counter += 1
             remaining_patience = early_stopping_patience-early_stopping_counter
             print(
-                f' [PATIENCE WARNING] No val_loss improvement for'
+                f' [PATIENCE WARNING] No val_acc improvement for'
                 f' {early_stopping_counter} epoch(s). Strikes:'
                 f' {early_stopping_counter}/{early_stopping_patience} '
                 f'({remaining_patience} left before early stopping)\n'
