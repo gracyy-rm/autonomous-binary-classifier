@@ -258,10 +258,10 @@ def run_pipeline(config):
     print("-----------------------------------\n")
 
     # Training Loop
-    best_val_acc = float("inf")
+    best_val_acc = 0.0
     early_stopping_counter = 0
     early_stopping_patience = train_cfg["early_stopping_patience"]
-    min_delta = 1e-4
+    min_delta = 1e-3
     print("\nStarting Training...\n")
 
     for epoch in range(1, train_cfg["epochs"] + 1):
