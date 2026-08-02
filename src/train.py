@@ -243,7 +243,7 @@ def run_pipeline(config):
         optimizer=optimizer,
         mode="min",
         factor=0.5,
-        patience=5,
+        patience=3,
         min_lr=1e-6,
         # threshold=0.1
     )
