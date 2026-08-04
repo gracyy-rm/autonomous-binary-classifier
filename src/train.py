@@ -259,6 +259,9 @@ def run_pipeline(config):
 
     # Training Loop
     best_val_acc = 0.0
+    best_val_loss = float('inf')
+    best_model_path= None
+
     early_stopping_counter = 0
     early_stopping_patience = train_cfg["early_stopping_patience"]
     min_delta = 1e-3
@@ -329,6 +332,8 @@ def run_pipeline(config):
                 'val_loss':val_loss
             }
             torch.save(checkpoint, save_path)
+            best_model_path =save_path
+            best_val_loss = val_loss
             print(f"Best model saved to {save_path} (Val Acc improved by {improvement:.4f})\n")
 
         else:
@@ -348,3 +353,9 @@ def run_pipeline(config):
     writer.close()
 
     print("\nTraining Complete.")
+
+    return {
+        "best_val_acc" : best_val_acc,
+        "best_val_loss" : best_val_loss,
+        "best_model_path" : best_model_path,
+    }
