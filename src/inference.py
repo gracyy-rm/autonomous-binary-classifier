@@ -47,10 +47,11 @@ class BinaryClassifierInference:
         self.model_name = model_cfg["architecture"]
         self.image_size = train_cfg["image_size"]
 
-        self.model_path = os.path.join(
-            paths["model_save_dir"],
-            paths["model_filename"]
-        )
+        # self.model_path = os.path.join(
+        #     paths["model_save_dir"],
+        #     paths["model_filename"]
+        # )
+        self.model_path = paths.get("model_path", "")
         self.class_names = {
             0: "No Obstacle",
             1: "Obstacle"
