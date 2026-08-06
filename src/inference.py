@@ -17,24 +17,25 @@ from cvcore.image_operations import load_image
 
 class BinaryClassifierInference:
     """
-    Perform inference using a trained binary classification model.
+        Perform inference using a trained binary classification model.
 
-    This class is responsible for:
-    - loading a trained model directly from specified path
-    - preprocessing input images
-    - predicting single images
-    - predicting folders/batch of images
-    - visualizing predictions
+        This class is responsible for
+
+        - loading a trained model
+        - preprocessing input images
+        - predicting single images
+        - predicting folders of images
+        - visualizing predictions
     """
 
-    def __init__(self, config):
+    def __init__(self,config):
         """
         Initialize the inferencer.
 
         Parameters
         ----------
         config : dict
-            Parsed configuration dictionary.
+           Parsed configuration dictionary.
         """
 
         # Parse configuration dictionary
@@ -42,23 +43,23 @@ class BinaryClassifierInference:
         model_cfg = config["model"]
         train_cfg = config["training_parameters"]
 
-        # Store configuration
+        # store configuration
         self.model_name = model_cfg["architecture"]
         self.image_size = train_cfg["image_size"]
 
-        # Fetch direct model path, falling back to directory + filename if needed
-        self.model_path = paths.get(
-            "model_path",
-            os.path.join(paths.get("model_save_dir", ""), paths.get("model_filename", ""))
+        self.model_path = os.path.join(
+            paths["model_save_dir"],
+            paths["model_filename"]
         )
-        
         self.class_names = {
             0: "No Obstacle",
             1: "Obstacle"
         }
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
         self.transform = self._build_transform()
+
         self.model = self._load_model()
 
     def _build_transform(self):
@@ -134,7 +135,7 @@ class BinaryClassifierInference:
         return image, image_tensor
     
     @torch.no_grad()
-    def _predict_tensor(self, image_tensor, decision_threshold=0.50):
+    def _predict_tensor(self, image_tensor,decision_threshold=0.50):
         """
         Predict a preprocessed image tensor.
 
@@ -148,7 +149,7 @@ class BinaryClassifierInference:
         Returns
         -------
         tuple
-            Predicted string label, raw probability, confidence percentage, raw logit, and predicted integer label.
+            Predicted string label, raw probability, confidence percentage, and raw logit.
         """
 
         logits = self.model(image_tensor).squeeze(-1)
@@ -282,6 +283,7 @@ class BinaryClassifierInference:
         output_df = pd.DataFrame(results)
         print(f"\nInference Complete! Processed {len(output_df):,} valid images.")
         return output_df
+    
 
     def visualize_predictions_grid(
         self,
