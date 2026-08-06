@@ -25,4 +25,5 @@ __pycache__/
 #!saved_models/.gitkeep
 
 # OS generated files
-.DS_Store
+.DS_Store*.pth
+.*bin
