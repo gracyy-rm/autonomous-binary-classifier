@@ -428,7 +428,8 @@ def run_pipeline(config):
             best_epoch = epoch
             early_stopping_counter = 0
 
-            best_model_path = os.path.join(run_dir, "best_model.pth")
+            best_model_path = os.path.join(run_dir, f"best_model_acc_{val_acc * 100:.1f}.pth")
+
 
             checkpoint = create_checkpoint(
                 model=model,
