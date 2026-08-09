@@ -12,182 +12,118 @@ from tqdm import tqdm
 from .dataset import get_data_transforms, InferenceDataset
 from .model import create_model
 
-from cvcore.plot_operations import image_row
-from cvcore.image_operations import load_image
 
 class BinaryClassifierInference:
     """
-        Perform inference using a trained binary classification model.
+    Perform inference using a trained binary classification model.
 
-        This class is responsible for
-
-        - loading a trained model
-        - preprocessing input images
-        - predicting single images
-        - predicting folders of images
-        - visualizing predictions
+    The model is loaded from a specific experiment checkpoint.
     """
 
-    def __init__(self,config):
-        """
-        Initialize the inferencer.
+    def __init__(self, model_path):
+        if not os.path.exists(model_path):
+            raise FileNotFoundError(f"Model checkpoint not found: {model_path}")
 
-        Parameters
-        ----------
-        config : dict
-           Parsed configuration dictionary.
-        """
-
-        # Parse configuration dictionary
-        paths = config["paths"]
-        model_cfg = config["model"]
-        train_cfg = config["training_parameters"]
-
-        # store configuration
-        self.model_name = model_cfg["architecture"]
-        self.image_size = train_cfg["image_size"]
-
-        self.model_path = os.path.join(
-            paths["model_save_dir"],
-            paths["model_filename"]
-        )
-        self.class_names = {
-            0: "No Obstacle",
-            1: "Obstacle"
-        }
-
+        self.model_path = model_path
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        self.transform = self._build_transform()
+        self.checkpoint = torch.load(model_path, map_location=self.device)
+        self._load_checkpoint_metadata()
 
+        self.class_names = {0: "No Obstacle", 1: "Obstacle"}
+        self.transform = self._build_transform()
         self.model = self._load_model()
 
+    # ============================================================
+    # CHECKPOINT METADATA
+    # ============================================================
+
+    def _load_checkpoint_metadata(self):
+        """Extract model architecture and training configuration from the checkpoint."""
+
+        if not isinstance(self.checkpoint, dict):
+            raise ValueError("Invalid checkpoint format. Expected a dictionary containing 'state_dict'.")
+
+        if "state_dict" not in self.checkpoint:
+            raise KeyError("Checkpoint does not contain 'state_dict'.")
+
+        self.model_name = self.checkpoint.get("architecture")
+
+        if self.model_name is None:
+            raise KeyError("Checkpoint does not contain 'architecture'.")
+
+        checkpoint_config = self.checkpoint.get("config", {})
+        training_config = checkpoint_config.get("training_parameters", {})
+        self.image_size = training_config.get("image_size", 224)
+
+        print("\n--- Model Checkpoint Information ---")
+        print(f"Model      : {self.model_name}")
+        print(f"Image Size : {self.image_size}")
+        print(f"Checkpoint : {self.model_path}")
+        print("------------------------------------\n")
+
+    # ============================================================
+    # TRANSFORM AND MODEL
+    # ============================================================
+
     def _build_transform(self):
-        """
-        Build preprocessing transform for inference.
-
-        Returns
-        -------
-        torchvision.transforms.Compose
-            Validation transform.
-        """
-
-        _, val_transform = get_data_transforms(
-            img_size=self.image_size
-        )
-
+        """Build the validation transform used for inference."""
+        _, val_transform = get_data_transforms(img_size=self.image_size)
         return val_transform
-    
+
     def _load_model(self):
-        """
-        Load trained model for inference.
-
-        Returns
-        -------
-        torch.nn.Module
-            Loaded model in evaluation mode.
-        """
-
-        if not os.path.exists(self.model_path):
-            raise FileNotFoundError(
-                f"Model checkpoint not found: {self.model_path}"
-            )
-        checkpoint = torch.load(self.model_path, map_location=self.device)
-        if isinstance(checkpoint, dict) and "state_dict" in checkpoint:
-            state_dict = checkpoint["state_dict"]
-            model_name = checkpoint.get("architecture", self.model_name)
-        else:
-            state_dict = checkpoint
-            model_name = getattr(self, 'model_name', 'resnet18')
+        """Recreate the trained model and load its weights."""
 
         model = create_model(
-            model_name=model_name,
+            model_name=self.model_name,
             num_classes=1,
             freeze_backbone=False
         )
-        model.load_state_dict(state_dict)
+
+        model.load_state_dict(self.checkpoint["state_dict"])
         model.to(self.device)
         model.eval()
 
         return model
-    
+
+    # ============================================================
+    # SINGLE IMAGE INFERENCE
+    # ============================================================
+
     def _preprocess_image(self, image_path):
-        """
-        Load and preprocess an image.
-
-        Parameters
-        ----------
-        image_path : str
-            Path to the input image.
-
-        Returns
-        -------
-        tuple
-            Original PIL image and preprocessed tensor.
-        """
+        """Load and preprocess a single image."""
 
         if not os.path.exists(image_path):
-            raise FileNotFoundError(
-                f"Image not found: {image_path}"
-            )
+            raise FileNotFoundError(f"Image not found: {image_path}")
+
         image = Image.open(image_path).convert("RGB")
         image_tensor = self.transform(image).unsqueeze(0).to(self.device)
+
         return image, image_tensor
-    
+
     @torch.no_grad()
-    def _predict_tensor(self, image_tensor,decision_threshold=0.50):
-        """
-        Predict a preprocessed image tensor.
+    def _predict_tensor(self, image_tensor, decision_threshold=0.50):
+        """Predict a preprocessed image tensor."""
 
-        Parameters
-        ----------
-        image_tensor : torch.Tensor
-            Preprocessed input tensor of shape [1, 3, H, W].
-        decision_threshold : float, optional
-            Probability threshold to classify as Obstacle (default: 0.50).
-
-        Returns
-        -------
-        tuple
-            Predicted string label, raw probability, confidence percentage, and raw logit.
-        """
-
-        logits = self.model(image_tensor).squeeze(-1)
+        logits = self.model(image_tensor).squeeze()
         probability = torch.sigmoid(logits).item()
         raw_logit = logits.item()
 
         predicted_label = 1 if probability >= decision_threshold else 0
         prediction_name = self.class_names[predicted_label]
 
-        confidence = (
-            probability if predicted_label == 1
-            else 1 - probability
-        ) * 100
+        confidence = (probability if predicted_label == 1 else 1 - probability) * 100
 
         return prediction_name, probability, confidence, raw_logit, predicted_label
-    
+
     def predict_image(self, image_path, decision_threshold=0.50):
-        """
-        Predict a single image.
-
-        Parameters
-        ----------
-        image_path : str
-            Path to the input image.
-        decision_threshold : float, optional
-            Probability threshold to flag as Obstacle.
-
-        Returns
-        -------
-        dict
-            Prediction results.
-        """
+        """Predict a single image."""
 
         image, image_tensor = self._preprocess_image(image_path)
 
         pred_name, prob, conf, logit, pred_label = self._predict_tensor(
-            image_tensor, 
-            decision_threshold=decision_threshold
+            image_tensor,
+            decision_threshold
         )
 
         return {
@@ -200,7 +136,11 @@ class BinaryClassifierInference:
             "confidence_score": round(conf, 2),
             "raw_logit": round(logit, 4)
         }
-    
+
+    # ============================================================
+    # BATCH INFERENCE
+    # ============================================================
+
     @torch.no_grad()
     def predict_csv_batch(
         self,
@@ -210,63 +150,56 @@ class BinaryClassifierInference:
         decision_threshold=0.50,
         uncertainty_range=(0.40, 0.60)
     ):
-        """
-        Run high-throughput batch inference across a CSV containing image paths.
-        """
+        """Run batch inference on images listed in a CSV."""
+
         if not os.path.exists(csv_path):
-            raise FileNotFoundError(f"Input CSV not found at {csv_path}")
+            raise FileNotFoundError(f"Input CSV not found: {csv_path}")
 
         input_df = pd.read_csv(csv_path)
+
         if "image_path" not in input_df.columns:
             raise KeyError("Input CSV must contain an 'image_path' column.")
 
-        dataset = InferenceDataset(
-            df=input_df,
-            transform=self.transform,
-        )
+        dataset = InferenceDataset(df=input_df, transform=self.transform)
 
         dataloader = DataLoader(
             dataset,
             batch_size=batch_size,
             shuffle=False,
             num_workers=num_workers,
-            pin_memory=True if self.device.type == "cuda" else False
+            pin_memory=self.device.type == "cuda"
         )
 
         results = []
 
         print(f"\n--- Starting Batch Inference on {len(dataset):,} images ---")
-        print(f"Device: {self.device} | Batch Size: {batch_size} | Threshold: {decision_threshold}\n")
+        print(
+            f"Device: {self.device} | Model: {self.model_name} | "
+            f"Batch Size: {batch_size} | Threshold: {decision_threshold}\n"
+        )
 
-        for batch_tensors, batch_paths, batch_names, batch_valid in tqdm(dataloader, desc="Processing Batches"):
+        for batch_tensors, batch_paths, batch_names, batch_valid in tqdm(
+            dataloader,
+            desc="Processing Batches"
+        ):
             batch_tensors = batch_tensors.to(self.device, non_blocking=True)
 
-            # Pass batch through model
-            logits = self.model(batch_tensors)
-            
-            # Ensure shape is flattened 1D tensor [batch_size]
-            if logits.dim() > 1:
-                logits = logits.view(-1)
-                
+            logits = self.model(batch_tensors).view(-1)
             probabilities = torch.sigmoid(logits)
 
-            # Explicitly extract to CPU numpy arrays
-            logits_np = logits.detach().cpu().numpy()
-            probs_np = probabilities.detach().cpu().numpy()
+            logits_np = logits.cpu().numpy()
+            probs_np = probabilities.cpu().numpy()
 
             for i in range(len(batch_paths)):
-                # Skip invalid images if any failed to load
                 if not batch_valid[i]:
                     continue
 
-                # Read actual values from numpy arrays
                 prob = float(probs_np[i])
                 logit = float(logits_np[i])
-
                 pred_label = 1 if prob >= decision_threshold else 0
                 pred_class_name = self.class_names[pred_label]
 
-                confidence = (prob if pred_label == 1 else (1.0 - prob)) * 100.0
+                confidence = (prob if pred_label == 1 else 1 - prob) * 100
                 is_uncertain = uncertainty_range[0] <= prob <= uncertainty_range[1]
 
                 results.append({
@@ -281,9 +214,13 @@ class BinaryClassifierInference:
                 })
 
         output_df = pd.DataFrame(results)
+
         print(f"\nInference Complete! Processed {len(output_df):,} valid images.")
         return output_df
-    
+
+    # ============================================================
+    # VISUALIZATION
+    # ============================================================
 
     def visualize_predictions_grid(
         self,
@@ -293,27 +230,42 @@ class BinaryClassifierInference:
         grid_cols=4,
         figsize=(16, 12)
     ):
-        """Visualize grid of predictions with color-coded title banners."""
+        """Visualize a grid of inference predictions."""
+
         if df.empty:
             print("DataFrame is empty. Nothing to visualize.")
             return
 
         if filter_type == "uncertain":
-            sample_df = df.sort_values(by="confidence_score", ascending=True).head(num_samples)
+            sample_df = df.sort_values("confidence_score").head(num_samples)
             title_prefix = "Most Uncertain / Low-Confidence Predictions"
+
         elif filter_type == "obstacles":
-            sample_df = df[df["pred_label"] == 1].sort_values(by="raw_prob", ascending=False).head(num_samples)
+            sample_df = df[df["pred_label"] == 1].sort_values(
+                "raw_prob",
+                ascending=False
+            ).head(num_samples)
+
             title_prefix = "Top Confidence Obstacle Predictions"
+
         elif filter_type == "no_obstacles":
-            sample_df = df[df["pred_label"] == 0].sort_values(by="raw_prob", ascending=True).head(num_samples)
+            sample_df = df[df["pred_label"] == 0].sort_values(
+                "raw_prob"
+            ).head(num_samples)
+
             title_prefix = "Top Confidence Clear Road Predictions"
+
         else:
             sample_df = df.sample(n=min(num_samples, len(df)))
             title_prefix = "Random Sample Predictions"
 
         num_images = len(sample_df)
-        grid_rows = math.ceil(num_images / grid_cols)
 
+        if num_images == 0:
+            print(f"No images available for the filter: {filter_type}")
+            return
+
+        grid_rows = math.ceil(num_images / grid_cols)
         fig, axes = plt.subplots(grid_rows, grid_cols, figsize=figsize)
         axes = np.array(axes).reshape(-1)
 
@@ -321,11 +273,11 @@ class BinaryClassifierInference:
 
         for idx, (_, row) in enumerate(sample_df.iterrows()):
             ax = axes[idx]
-            img_path = row["image_path"]
 
             try:
-                img = Image.open(img_path).convert("RGB")
+                img = Image.open(row["image_path"]).convert("RGB")
                 ax.imshow(img)
+
             except Exception as e:
                 ax.text(0.5, 0.5, f"Failed to Load\n{e}", ha="center", va="center")
 
@@ -338,7 +290,8 @@ class BinaryClassifierInference:
 
             title_text = (
                 f"[{row['pred_class_name']}]\n"
-                f"Conf: {row['confidence_score']:.1f}% | Prob: {row['raw_prob']:.2f}\n"
+                f"Conf: {row['confidence_score']:.1f}% | "
+                f"Prob: {row['raw_prob']:.2f}\n"
                 f"{row['image_name'][:20]}"
             )
 
@@ -348,6 +301,13 @@ class BinaryClassifierInference:
         for idx in range(num_images, len(axes)):
             axes[idx].axis("off")
 
-        plt.suptitle(f"Batch Inference Inspection — {title_prefix}", fontsize=14, fontweight="bold", y=1.02)
+        plt.suptitle(
+            f"Batch Inference Inspection — {title_prefix}",
+            fontsize=14,
+            fontweight="bold",
+            y=1.02
+        )
+
         plt.tight_layout()
         plt.show()
+
