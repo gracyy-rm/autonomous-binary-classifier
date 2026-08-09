@@ -428,24 +428,30 @@ def run_pipeline(config):
             best_epoch = epoch
             early_stopping_counter = 0
 
-            best_model_path = os.path.join(run_dir, f"best_model_acc_{val_acc:.1f}.pth")
+            if best_model_path is not None and os.path.exists(best_model_path):
+                os.remove(best_model_path)
 
-
-            checkpoint = create_checkpoint(
-                model=model,
-                config=config,
-                epoch=epoch,
-                train_loss=train_loss,
-                val_loss=val_loss,
-                train_acc=train_acc,
-                val_acc=val_acc,
-                train_precision=train_precision,
-                val_precision=val_precision,
-                train_recall=train_recall,
-                val_recall=val_recall,
-                train_f1=train_f1,
-                val_f1=val_f1
+            best_model_path = os.path.join(
+                run_dir,
+                f"best_model_acc_{val_acc * 100:.1f}.pth"
             )
+
+            checkpoint = {
+                "architecture": model_cfg["architecture"],
+                "epoch": epoch,
+                "state_dict": model.state_dict(),
+                "val_acc": val_acc,
+                "val_loss": val_loss,
+                "train_acc": train_acc,
+                "train_loss": train_loss,
+                "train_precision": train_precision,
+                "val_precision": val_precision,
+                "train_recall": train_recall,
+                "val_recall": val_recall,
+                "train_f1": train_f1,
+                "val_f1": val_f1,
+                "config": config
+            }
 
             torch.save(checkpoint, best_model_path)
 
