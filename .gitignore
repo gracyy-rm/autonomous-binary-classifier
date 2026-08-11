@@ -1,29 +1,42 @@
-# Environments
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
 .venv/
 venv/
 env/
 
-# Python
-__pycache__/
-*.pyc
+# IDE
+.vscode/
+.ipynb_checkpoints/
 
-# Data & Weights (Never push large files!)
-#*.pt
-#*.pth
-#*.pth.tar
-#checkpoint/
+# Model checkpoints
+*.pt
+*.pth
+*.pth.tar
+*.ckpt
+checkpoint/
+saved_models/
 
+# Experiments
+experiments/
 
+# Logs
+logs/
 
-# Data and Logs (Keep the structure, ignore the contents)
-#data/
-#logs/*
-#!logs/.gitkeep
+# Data
+data/
 
-# Model Checkpoints (Crucial - never push heavy model weights)
-#saved_models/*
-#!saved_models/.gitkeep
+# Extra notebooks
+extra_notebooks/
 
-# OS generated files
-.DS_Store*.pth
-.*bin
+# Archives
+*.zip
+
+# OS files
+.DS_Store
+Thumbs.db
+project_structure.txt
