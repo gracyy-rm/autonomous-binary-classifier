@@ -93,18 +93,7 @@ The core training and inference flow is implemented in:
 
 ### Model configuration
 
-The configuration file `config/config.json` defines the run-level parameters, including:
-
-- model architecture
-- pretrained backbone setting
-- class count
-- freeze-backbone behavior
-- learning rate
-- batch size
-- epochs
-- image size
-- seed
-- weight decay
+The configuration file `config/config.json` defines the run-level parameters.
 
 The training pipeline uses binary classification with a single output logit and `BCEWithLogitsLoss`, consistent with the one-class binary formulation.
 
@@ -176,27 +165,9 @@ Key trade-offs:
 - ResNet18 achieves slightly higher recall.
 - EfficientNet-B0 produces the strongest overall balance of accuracy, F1, and model footprint for this project.
 
-## Error analysis and Grad-CAM
-
-The project includes explicit error analysis and interpretability work to inspect model behavior beyond aggregate metrics.
-
-The model failure workflow is:
-
-Prediction
-→ identify failures
-→ separate false-positive and false-negative cases
-→ inspect Grad-CAM
-→ diagnose where the model is attending
-→ interpret the decision basis
-→ use findings to refine the dataset
+## Grad-CAM
 
 The repository includes a Grad-CAM implementation in `src/gradcam.py` and an explicit interpretability notebook in `notebooks/05-gradcam-analysis.ipynb`. Grad-CAM is used to investigate false positives and false negatives to understand whether the model is relying on relevant road-scene context or on spurious visual patterns.
-
-At a high level, the analysis aims to answer:
-
-- Is the model attending to the road area, obstacles, or unrelated scene context?
-- Which failure cases are caused by ambiguous background information?
-- Which patterns should be corrected in the dataset through further refinement?
 
 ## Visual summaries
 
@@ -301,12 +272,6 @@ python main.py --config="config/config.json"
 ```
 
 The configuration file is the central point for model and training settings. The scripts are designed around a reproducible training workflow that produces checkpoints and experiment artifacts according to the configured paths.
-
-## Reproducibility
-
-This project was developed in a Python 3.11.15 environment, with local PyTorch 2.13.0+cpu usage. The larger training and inference experiments were performed on Kaggle GPU infrastructure using a T4 x2 setup.
-
-The repository is structured to support this workflow, but it does not include the original BDD100K dataset or the final large model checkpoints. These are treated as external resources or generated outputs, consistent with the repository’s `.gitignore` settings and project structure.
 
 ## Limitations and considerations
 
